@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SyncMusician Pro — Toda a banda na mesma página</title>
+<meta name="description" content="Sincronize cifras, tons e scroll em tempo real entre todos os músicos da banda. Sem papel, sem confusão, sem perder o compasso.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & ROOT ── */
+:root {
+  --bg: #080808;
+  --bg2: #0f0f0f;
+  --surface: #141414;
+  --border: #1e1e1e;
+  --border2: #2a2a2a;
+  --text: #e8e4dc;
+  --text-dim: #6b6560;
+  --amber: #f59e0b;
+  --amber-dim: rgba(245,158,11,0.12);
+  --green: #10b981;
+  --red: #ef4444;
+  --font-display: 'Bebas Neue', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ── NOISE TEXTURE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.025;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── NAV ── */
+nav {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 40px;
+  z-index: 100;
+  background: linear-gradient(to bottom, rgba(8,8,8,0.95) 0%, transparent 100%);
+}
+
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none;
+}
+.nav-logo-icon {
+  width: 32px; height: 32px;
+  background: var(--amber);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+}
+.nav-logo-text {
+  font-family: var(--font-display);
+  font-size: 22px; letter-spacing: 1px;
+  color: var(--text);
+}
+.nav-logo-text span { color: var(--amber); }
+
+.nav-cta {
+  background: var(--amber);
+  color: #000;
+  text-decoration: none;
+  padding: 9px 20px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+  transition: opacity 0.2s, transform 0.15s;
+}
+.nav-cta:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* ── HERO ── */
+.hero {
+  min-height: 100vh;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  text-align: center;
+  padding: 140px 24px 80px;
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-glow {
+  position: absolute;
+  top: 20%; left: 50%;
+  transform: translateX(-50%);
+  width: 700px; height: 400px;
+  background: radial-gradient(ellipse, rgba(245,158,11,0.09) 0%, transparent 65%);
+  pointer-events: none;
+}
+
+.hero-tag {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--amber);
+  border: 1px solid rgba(245,158,11,0.25);
+  border-radius: 20px;
+  padding: 5px 14px;
+  margin-bottom: 32px;
+  animation: fadeUp 0.8s ease both;
+}
+
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(64px, 12vw, 130px);
+  line-height: 0.92;
+  letter-spacing: 2px;
+  color: var(--text);
+  margin-bottom: 16px;
+  animation: fadeUp 0.8s 0.1s ease both;
+}
+
+.hero h1 em {
+  font-style: normal;
+  color: var(--amber);
+  display: block;
+}
+
+.hero-sub {
+  font-size: clamp(15px, 2.5vw, 19px);
+  color: var(--text-dim);
+  max-width: 520px;
+  font-weight: 300;
+  line-height: 1.7;
+  margin-bottom: 44px;
+  animation: fadeUp 0.8s 0.2s ease both;
+}
+
+.hero-actions {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  justify-content: center;
+  animation: fadeUp 0.8s 0.3s ease both;
+}
+
+.btn-primary {
+  background: var(--amber); color: #000;
+  text-decoration: none;
+  padding: 16px 36px;
+  border-radius: 10px;
+  font-family: var(--font-body);
+  font-size: 15px; font-weight: 500;
+  letter-spacing: 0.2px;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 0 0 rgba(245,158,11,0);
+}
+.btn-primary:hover {
+  opacity: 0.9; transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(245,158,11,0.25);
+}
+
+.btn-secondary {
+  background: transparent; color: var(--text);
+  text-decoration: none;
+  padding: 16px 28px;
+  border-radius: 10px;
+  border: 1px solid var(--border2);
+  font-family: var(--font-body);
+  font-size: 15px; font-weight: 400;
+  transition: border-color 0.2s, color 0.2s;
+}
+.btn-secondary:hover { border-color: var(--amber); color: var(--amber); }
+
+/* ── PHONE MOCKUP ── */
+.hero-visual {
+  margin-top: 72px;
+  display: flex; align-items: flex-end; justify-content: center;
+  gap: 16px;
+  animation: fadeUp 0.9s 0.4s ease both;
+  position: relative;
+}
+
+.phone {
+  width: 160px;
+  background: #111;
+  border-radius: 24px;
+  border: 1px solid #222;
+  overflow: hidden;
+  box-shadow: 0 30px 80px rgba(0,0,0,0.7);
+  position: relative;
+}
+
+.phone.leader { height: 300px; }
+.phone.musician { height: 260px; transform: translateY(20px); }
+
+.phone-bar {
+  height: 36px;
+  background: #1a1a1a;
+  border-bottom: 1px solid #222;
+  display: flex; align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+}
+.phone-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+}
+.phone-dot.amber { background: var(--amber); box-shadow: 0 0 5px var(--amber); }
+.phone-dot.green { background: var(--green); box-shadow: 0 0 5px var(--green); }
+.phone-status {
+  font-family: var(--font-mono);
+  font-size: 8px; color: #555; margin-left: 2px; letter-spacing: 0.5px;
+}
+
+.phone-content {
+  padding: 10px;
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  line-height: 1.7;
+  color: #888;
+}
+
+.phone-chord { color: var(--amber); font-weight: 700; }
+.phone-section { color: #444; margin: 4px 0 2px; }
+
+.sync-indicator {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex; flex-direction: column; align-items: center; gap: 6px;
+}
+
+.sync-arrow {
+  width: 36px; height: 36px;
+  background: rgba(16,185,129,0.12);
+  border: 1px solid rgba(16,185,129,0.3);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  animation: pulse 2s ease-in-out infinite;
+}
+.sync-label {
+  font-family: var(--font-mono);
+  font-size: 8px; color: var(--green);
+  letter-spacing: 1px; text-transform: uppercase;
+}
+
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.3); }
+  50% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+}
+
+/* scrolling cifra inside leader phone */
+.phone-content-inner {
+  animation: scrollUp 8s linear infinite;
+}
+@keyframes scrollUp {
+  0%   { transform: translateY(0); }
+  100% { transform: translateY(-60px); }
+}
+
+/* ── SECTION BASE ── */
+section {
+  padding: 100px 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.section-tag {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 3px; text-transform: uppercase;
+  color: var(--amber); margin-bottom: 16px; display: block;
+}
+
+/* ── DIVIDER ── */
+.divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--border2) 20%, var(--border2) 80%, transparent);
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── PAIN SECTION ── */
+.pain-section { padding-top: 80px; }
+
+.pain-section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 7vw, 72px);
+  line-height: 0.95; letter-spacing: 1px;
+  margin-bottom: 60px;
+}
+
+.pain-section h2 span { color: var(--amber); }
+
+.pain-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.pain-card {
+  background: var(--bg2);
+  padding: 36px 32px;
+  transition: background 0.2s;
+}
+.pain-card:hover { background: var(--surface); }
+
+.pain-number {
+  font-family: var(--font-display);
+  font-size: 56px; color: var(--border2);
+  line-height: 1; margin-bottom: 16px;
+  transition: color 0.2s;
+}
+.pain-card:hover .pain-number { color: var(--amber); }
+
+.pain-title {
+  font-size: 17px; font-weight: 500;
+  margin-bottom: 10px; color: var(--text);
+}
+
+.pain-body {
+  font-size: 14px; color: var(--text-dim);
+  font-weight: 300; line-height: 1.7;
+  font-style: italic;
+}
+
+/* ── HOW IT WORKS ── */
+.how-section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 7vw, 72px);
+  line-height: 0.95; letter-spacing: 1px;
+  margin-bottom: 60px;
+}
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 32px;
+}
+
+.step {
+  position: relative;
+  padding: 32px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  transition: border-color 0.2s, transform 0.2s;
+}
+.step:hover { border-color: var(--amber); transform: translateY(-3px); }
+
+.step-num {
+  font-family: var(--font-mono);
+  font-size: 10px; letter-spacing: 2px;
+  color: var(--amber); margin-bottom: 20px;
+  text-transform: uppercase;
+}
+
+.step-icon { font-size: 32px; margin-bottom: 14px; display: block; }
+
+.step h3 {
+  font-size: 18px; font-weight: 500;
+  margin-bottom: 10px;
+}
+
+.step p {
+  font-size: 14px; color: var(--text-dim);
+  font-weight: 300; line-height: 1.7;
+}
+
+/* ── FEATURES ── */
+.features-section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(42px, 7vw, 72px);
+  line-height: 0.95; letter-spacing: 1px;
+  margin-bottom: 60px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.feature-pill {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 20px;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: border-color 0.2s;
+}
+.feature-pill:hover { border-color: var(--border2); }
+
+.feature-pill-icon {
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: var(--amber-dim);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px;
+}
+
+.feature-pill h4 {
+  font-size: 13px; font-weight: 500;
+  margin-bottom: 3px;
+}
+
+.feature-pill p {
+  font-size: 12px; color: var(--text-dim);
+  font-weight: 300; line-height: 1.5;
+}
+
+/* ── CTA SECTION ── */
+.cta-section {
+  text-align: center;
+  padding: 100px 24px 120px;
+  position: relative;
+  overflow: hidden;
+}
+
+.cta-glow {
+  position: absolute;
+  bottom: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 600px; height: 300px;
+  background: radial-gradient(ellipse, rgba(245,158,11,0.07) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.cta-section h2 {
+  font-family: var(--font-display);
+  font-size: clamp(52px, 10vw, 110px);
+  line-height: 0.92; letter-spacing: 2px;
+  margin-bottom: 20px;
+}
+
+.cta-section h2 span { color: var(--amber); display: block; }
+
+.cta-sub {
+  font-size: 16px; color: var(--text-dim);
+  font-weight: 300; margin-bottom: 44px; max-width: 400px;
+  margin-left: auto; margin-right: auto;
+}
+
+.cta-note {
+  margin-top: 20px;
+  font-family: var(--font-mono);
+  font-size: 11px; color: var(--text-dim);
+  letter-spacing: 0.5px;
+}
+
+/* ── FOOTER ── */
+footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 40px;
+  display: flex; align-items: center; justify-content: space-between;
+  flex-wrap: wrap; gap: 16px;
+}
+
+.footer-logo {
+  font-family: var(--font-display);
+  font-size: 18px; letter-spacing: 1px; color: var(--text-dim);
+}
+.footer-logo span { color: var(--amber); }
+
+.footer-note {
+  font-family: var(--font-mono);
+  font-size: 10px; color: var(--text-dim); letter-spacing: 1px;
+}
+
+/* ── SCROLL REVEAL ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 600px) {
+  nav { padding: 16px 20px; }
+  .hero { padding: 120px 20px 60px; }
+  .phone { width: 130px; }
+  .phone.leader { height: 240px; }
+  .phone.musician { height: 210px; }
+  footer { flex-direction: column; text-align: center; padding: 28px 20px; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="#" class="nav-logo">
+    <div class="nav-logo-icon">🎵</div>
+    <span class="nav-logo-text">Sync<span>Musician</span></span>
+  </a>
+  <a href="https://syncmusicianfront.vercel.app" target="_blank" class="nav-cta">Abrir o app →</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-glow"></div>
+  <div class="hero-tag">Para músicos de verdade</div>
+  <h1>Toda a banda<em>na mesma página.</em></h1>
+  <p class="hero-sub">Cifras, tons e scroll sincronizados em tempo real entre todos os músicos. Sem papel, sem confusão, sem perder o compasso.</p>
+  <div class="hero-actions">
+    <a href="https://syncmusicianfront.vercel.app" target="_blank" class="btn-primary">Abrir o app grátis</a>
+    <a href="#como-funciona" class="btn-secondary">Como funciona</a>
+  </div>
+
+  <!-- Phone mockup -->
+  <div class="hero-visual">
+    <div class="phone leader">
+      <div class="phone-bar">
+        <div class="phone-dot amber"></div>
+        <span class="phone-status">LÍDER</span>
+      </div>
+      <div class="phone-content">
+        <div class="phone-content-inner">
+          <div class="phone-section">[Verso]</div>
+          <span class="phone-chord">Am</span>    <span class="phone-chord">F</span>     <span class="phone-chord">C</span>    <span class="phone-chord">G</span><br>
+          Quando a noite chegar<br>
+          <span class="phone-chord">Am</span>    <span class="phone-chord">F</span><br>
+          E o vento silenciar<br><br>
+          <div class="phone-section">[Refrão]</div>
+          <span class="phone-chord">C</span>     <span class="phone-chord">G</span>     <span class="phone-chord">Am</span>   <span class="phone-chord">F</span><br>
+          Eu vou estar aqui<br>
+          <span class="phone-chord">C</span>     <span class="phone-chord">G</span><br>
+          Sempre aqui pra ti<br><br>
+          <div class="phone-section">[Ponte]</div>
+          <span class="phone-chord">F</span>     <span class="phone-chord">G</span>     <span class="phone-chord">Am</span><br>
+          E o tempo vai passar<br>
+        </div>
+      </div>
+    </div>
+
+    <div class="sync-indicator">
+      <div class="sync-arrow">⇄</div>
+      <span class="sync-label">sync</span>
+    </div>
+
+    <div class="phone musician">
+      <div class="phone-bar">
+        <div class="phone-dot green"></div>
+        <span class="phone-status">MÚSICO</span>
+      </div>
+      <div class="phone-content">
+        <div class="phone-content-inner">
+          <div class="phone-section">[Verso]</div>
+          <span class="phone-chord">Am</span>    <span class="phone-chord">F</span>     <span class="phone-chord">C</span>    <span class="phone-chord">G</span><br>
+          Quando a noite chegar<br>
+          <span class="phone-chord">Am</span>    <span class="phone-chord">F</span><br>
+          E o vento silenciar<br><br>
+          <div class="phone-section">[Refrão]</div>
+          <span class="phone-chord">C</span>     <span class="phone-chord">G</span>     <span class="phone-chord">Am</span>   <span class="phone-chord">F</span><br>
+          Eu vou estar aqui<br>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PAIN SECTION -->
+<section class="pain-section reveal">
+  <span class="section-tag">Situações que todo músico conhece</span>
+  <h2>Você já passou<br>por <span>alguma dessas?</span></h2>
+  <div class="pain-grid">
+    <div class="pain-card">
+      <div class="pain-number">01</div>
+      <div class="pain-title">O tom que mudou de última hora</div>
+      <p class="pain-body">"Vamos tocar em Lá bemol hoje." Metade da banda já abriu a cifra errada. O ensaio trava por cinco minutos.</p>
+    </div>
+    <div class="pain-card">
+      <div class="pain-number">02</div>
+      <div class="pain-title">A tela que apagou no meio da música</div>
+      <p class="pain-body">O tablet do tecladista travou. Ele está de cabeça baixa tentando desbloquear enquanto a música continua.</p>
+    </div>
+    <div class="pain-card">
+      <div class="pain-number">03</div>
+      <div class="pain-title">O guitarrista que está na estrofe errada</div>
+      <p class="pain-body">Todo mundo já foi pro refrão. Ele ainda está na ponte. Ninguém percebe até o vocal entrar no lugar errado.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HOW IT WORKS -->
+<section id="como-funciona" class="how-section reveal">
+  <span class="section-tag">Como funciona</span>
+  <h2>Três passos.<br>Banda sincronizada.</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">Passo 01</div>
+      <span class="step-icon">👑</span>
+      <h3>O Líder abre o app</h3>
+      <p>Escolhe a pasta do repertório, abre a primeira música. Um ID de sessão é gerado automaticamente.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Passo 02</div>
+      <span class="step-icon">📱</span>
+      <h3>Os músicos conectam</h3>
+      <p>Cada músico cola o ID ou escaneia o QR Code. Em segundos, estão todos na mesma cifra.</p>
+    </div>
+    <div class="step">
+      <div class="step-num">Passo 03</div>
+      <span class="step-icon">🎸</span>
+      <h3>Toque. O resto é automático.</h3>
+      <p>Troca de tom, scroll automático e medley — tudo sincronizado em tempo real, sem servidor, sem configuração.</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section class="features-section reveal">
+  <span class="section-tag">O que está incluído</span>
+  <h2>Tudo que uma<br>banda precisa.</h2>
+  <div class="features-grid">
+    <div class="feature-pill">
+      <div class="feature-pill-icon">🎵</div>
+      <div>
+        <h4>Importação de cifras</h4>
+        <p>Cole o link do Cifra Club. A cifra é importada e fica salva na biblioteca.</p>
+      </div>
+    </div>
+    <div class="feature-pill">
+      <div class="feature-pill-icon">🔁</div>
+      <div>
+        <h4>Transposição em tempo real</h4>
+        <p>O líder muda o tom e todos os músicos veem a nova cifra instantaneamente.</p>
+      </div>
+    </div>
+    <div class="feature-pill">
+      <div class="feature-pill-icon">⬇️</div>
+      <div>
+        <h4>Scroll sincronizado</h4>
+        <p>O líder define a velocidade. Todas as telas descem juntas, no mesmo ritmo.</p>
+      </div>
+    </div>
+    <div class="feature-pill">
+      <div class="feature-pill-icon">📁</div>
+      <div>
+        <h4>Pastas de repertório</h4>
+        <p>Organize por evento, estilo ou formação. Cada pasta é um setlist pronto.</p>
+      </div>
+    </div>
+    <div class="feature-pill">
+      <div class="feature-pill-icon">▶️</div>
+      <div>
+        <h4>Medley automático</h4>
+        <p>O app sugere a próxima música compatível no tom certo, na hora certa.</p>
+      </div>
+    </div>
+    <div class="feature-pill">
+      <div class="feature-pill-icon">💾</div>
+      <div>
+        <h4>Backup portátil</h4>
+        <p>Exporte toda a biblioteca em um arquivo e restaure em qualquer dispositivo.</p>
+      </div>
+    </div>
+    <div class="feature-pill">
+      <div class="feature-pill-icon">✏️</div>
+      <div>
+        <h4>Edição inline</h4>
+        <p>Anote diretamente na cifra: "solo aqui", "pausa", "dobra". Fica salvo.</p>
+      </div>
+    </div>
+    <div class="feature-pill">
+      <div class="feature-pill-icon">📶</div>
+      <div>
+        <h4>Sem servidor central</h4>
+        <p>A conexão é ponto a ponto. Funciona em qualquer rede, até no Wi-Fi do local.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section class="cta-section reveal">
+  <div class="cta-glow"></div>
+  <span class="section-tag">Grátis. Sem cadastro.</span>
+  <h2>Pronto para<span>tocar junto?</span></h2>
+  <p class="cta-sub">Abre no celular de qualquer músico. Adiciona na tela inicial como app. Não precisa instalar nada.</p>
+  <a href="https://syncmusicianfront.vercel.app" target="_blank" class="btn-primary">Abrir o SyncMusician →</a>
+  <p class="cta-note">Funciona em qualquer celular com navegador. iOS e Android.</p>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">Sync<span>Musician</span> Pro</div>
+  <div class="footer-note">Feito para músicos, por músicos · v8.1</div>
+</footer>
+
+<script>
+// Scroll reveal
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12 });
+
+document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+</script>
+</body>
+</html>
